@@ -1033,7 +1033,7 @@ function ReasonList({ title, items, fallback }: { title: string; items: string[]
     <Card>
       <CardHeader><CardTitle className="text-sm">{title}</CardTitle></CardHeader>
       <CardContent className="flex flex-col gap-2 text-sm text-muted-foreground">
-        {values.map((item) => <div key={item}>{item}</div>)}
+        {values.map((item, index) => <div key={`${item}-${index}`}>{item}</div>)}
       </CardContent>
     </Card>
   );
@@ -1060,7 +1060,7 @@ function InfoCard({ title, badges, body, footer }: { title: string; badges: stri
       <CardHeader>
         <CardTitle className="flex flex-wrap items-center gap-2 text-sm">
           {title}
-          {badges.filter(Boolean).map((badge) => <Badge key={badge} variant="secondary">{badge}</Badge>)}
+          {badges.filter(Boolean).map((badge, index) => <Badge key={`${badge}-${index}`} variant="secondary">{badge}</Badge>)}
         </CardTitle>
       </CardHeader>
       <CardContent className="text-sm text-muted-foreground">
@@ -1084,7 +1084,7 @@ function List({ items, ordered = false }: { items: string[]; ordered?: boolean }
   const Tag = ordered ? "ol" : "ul";
   return (
     <Tag className={`mt-2 grid gap-1 text-sm text-muted-foreground ${ordered ? "list-decimal pl-5" : "list-disc pl-5"}`}>
-      {items.map((item) => <li key={item}>{item}</li>)}
+      {items.map((item, index) => <li key={`${item}-${index}`}>{item}</li>)}
     </Tag>
   );
 }
