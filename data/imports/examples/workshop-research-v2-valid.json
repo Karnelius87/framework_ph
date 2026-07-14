@@ -1,0 +1,155 @@
+{
+  "importVersion": "2.0",
+  "importId": "RP-0002",
+  "version": "v1",
+  "market": "workshop",
+  "topic": "investment_decision",
+  "researchDate": "2026-07-12",
+  "title": "Workshop investment decision package",
+  "executiveSummary": "Demo / Hypothesis - Workshop remains attractive, but decision confidence depends on interviews, WTP validation, and competitor penetration checks.",
+  "summary": "A structured v2 research package covering decision metrics, unknowns, kill criteria, coverage, and next actions.",
+  "recommendation": "Continue deep research",
+  "recommendationConfidence": 0.62,
+  "researcher": "ChatGPT",
+  "claims": [
+    {
+      "id": "claim-v2-workshop-001",
+      "statement": "Workshop willingness to pay is the highest-impact unknown before investment-ready status.",
+      "category": "payment_flow",
+      "direction": "supporting",
+      "confidence": 0.58,
+      "importance": "critical",
+      "sourceIds": ["source-v2-workshop-001"],
+      "competitorIds": [],
+      "notes": "Demo / Hypothesis - not a factual claim."
+    }
+  ],
+  "sources": [
+    {
+      "id": "source-v2-workshop-001",
+      "title": "Workshop WTP interview plan",
+      "url": "local://research/workshop-wtp-plan",
+      "publisher": "Internal Research",
+      "sourceType": "interview",
+      "publishedAt": null,
+      "accessedAt": "2026-07-12",
+      "evidenceLevel": "C",
+      "credibility": 0.5,
+      "notes": "Demo / Hypothesis - planned validation artifact."
+    }
+  ],
+  "updatedScores": [
+    {
+      "id": "score-v2-workshop-001",
+      "category": "payment_flow",
+      "currentScore": 84,
+      "suggestedScore": 80,
+      "reason": "Demo / Hypothesis - payment-flow score should wait for WTP validation.",
+      "confidence": 0.52,
+      "supportingClaimIds": ["claim-v2-workshop-001"],
+      "opposingClaimIds": [],
+      "sourceIds": ["source-v2-workshop-001"]
+    }
+  ],
+  "criticalUnknowns": [
+    {
+      "id": "unknown-v2-workshop-wtp",
+      "title": "Willingness to pay PHP 1,500 per month",
+      "description": "Demo / Hypothesis - stated WTP is not yet validated.",
+      "category": "willingness_to_pay",
+      "importance": "critical",
+      "currentConfidence": 25,
+      "targetConfidence": 80,
+      "status": "open",
+      "validationMethod": "Price-test interviews",
+      "impactIfWrong": "Revenue model may not support a vertical SaaS product.",
+      "recommendedAction": "Interview 10 independent workshops."
+    }
+  ],
+  "killCriteria": [
+    {
+      "id": "kill-v2-workshop-low-wtp",
+      "title": "Average willingness to pay is below PHP 500 per month",
+      "description": "Demo / Hypothesis - low WTP would pause the thesis.",
+      "threshold": "<PHP 500 median stated WTP",
+      "category": "pricing",
+      "status": "monitoring",
+      "severity": "fatal",
+      "evidenceStatus": "hypothesis",
+      "linkedClaims": ["claim-v2-workshop-001"],
+      "linkedSources": ["source-v2-workshop-001"]
+    }
+  ],
+  "whyWeWin": [
+    {
+      "id": "win-v2-workshop-local-workflow",
+      "title": "Local workflow focus",
+      "description": "Demo / Hypothesis - a narrow workshop operating system can fit Messenger-led daily behavior better than broad tools.",
+      "evidenceStatus": "hypothesis",
+      "confidence": 62,
+      "capabilityType": "local_knowledge",
+      "defensibility": "moderate",
+      "timeHorizon": "near_term"
+    }
+  ],
+  "whyWeMayLose": [
+    {
+      "id": "lose-v2-workshop-inventory",
+      "title": "Inventory complexity",
+      "description": "Demo / Hypothesis - parts and oil inventory may pull the product into heavy scope.",
+      "evidenceStatus": "hypothesis",
+      "confidence": 58,
+      "capabilityType": "operational_advantage",
+      "defensibility": "weak",
+      "timeHorizon": "mid_term"
+    }
+  ],
+  "coverageUpdates": [
+    {
+      "category": "willingness_to_pay",
+      "score": 22,
+      "targetScore": 85,
+      "evidenceCount": 1,
+      "verifiedEvidenceCount": 0,
+      "confidence": 25,
+      "linkedClaims": ["claim-v2-workshop-001"],
+      "linkedSources": ["source-v2-workshop-001"],
+      "linkedInterviews": [],
+      "gaps": "Demo / Hypothesis - no completed WTP interview batch yet.",
+      "recommendedNextAction": "Run price-test interviews."
+    }
+  ],
+  "nextResearchActions": [
+    {
+      "id": "action-v2-workshop-wtp",
+      "title": "Interview 10 independent workshops",
+      "description": "Demo / Hypothesis - validate workflow frequency, price sensitivity, and current workarounds.",
+      "priority": "critical",
+      "reason": "WTP is the largest decision-score gap.",
+      "linkedCoverageCategory": "willingness_to_pay",
+      "linkedUnknown": "unknown-v2-workshop-wtp",
+      "linkedKillCriterion": "kill-v2-workshop-low-wtp",
+      "estimatedImpact": 10,
+      "expectedConfidenceImprovement": 15,
+      "status": "planned"
+    }
+  ],
+  "decisionLogEntries": [
+    {
+      "id": "decision-v2-workshop-priority",
+      "title": "Prioritize WTP validation",
+      "decision": "Make WTP interviews the next critical research action.",
+      "rationale": "Demo / Hypothesis - Decision Score is most sensitive to payment willingness.",
+      "previousValue": "General workshop research",
+      "newValue": "WTP-first research",
+      "decisionType": "research_priority",
+      "linkedClaims": ["claim-v2-workshop-001"],
+      "linkedSources": ["source-v2-workshop-001"],
+      "linkedScoreChanges": ["score-v2-workshop-001"],
+      "linkedRisks": [],
+      "approvedBy": "Local Researcher",
+      "reversible": true
+    }
+  ],
+  "reportUpdates": []
+}

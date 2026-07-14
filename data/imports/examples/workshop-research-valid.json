@@ -1,0 +1,101 @@
+{
+  "importVersion": "1.0",
+  "importId": "workshop-research-valid-001",
+  "marketSlug": "workshop",
+  "researchDate": "2026-07-12",
+  "title": "Workshop competitor research update",
+  "summary": "A local competitor scan suggests the workshop market remains fragmented and that Messenger-based coordination is still common.",
+  "researcher": "ChatGPT",
+  "reportMarkdown": "## Workshop update\n\nThe market still appears fragmented. Evidence points to no obvious dominant local operating system for independent workshops.",
+  "claims": [
+    {
+      "id": "claim-workshop-001",
+      "statement": "The Philippine workshop software market has no clear dominant local platform.",
+      "category": "competition",
+      "direction": "supporting",
+      "confidence": 0.72,
+      "status": "needs_review",
+      "importance": "high",
+      "scoreImpact": 0.4,
+      "sourceIds": ["source-001"],
+      "competitorIds": ["competitor-001"],
+      "notes": "Needs local customer validation"
+    }
+  ],
+  "sources": [
+    {
+      "id": "source-001",
+      "title": "GarageBox Philippines",
+      "url": "https://example.com",
+      "publisher": "GarageBox",
+      "sourceType": "competitor_website",
+      "publishedAt": null,
+      "accessedAt": "2026-07-12",
+      "evidenceLevel": "B",
+      "credibility": 0.7,
+      "notes": "Official competitor product page"
+    }
+  ],
+  "competitors": [
+    {
+      "id": "competitor-001",
+      "company": "GarageBox",
+      "website": "https://example.com",
+      "country": "Philippines",
+      "targetSegment": "Auto workshops",
+      "threatLevel": "Medium",
+      "strengths": ["Workshop-specific positioning"],
+      "weaknesses": ["Limited public traction evidence"]
+    }
+  ],
+  "assumptions": [
+    {
+      "id": "assumption-001",
+      "statement": "Independent workshops are willing to adopt lightweight mobile-first workflow software.",
+      "confidence": 0.55,
+      "status": "needs_review"
+    }
+  ],
+  "risks": [
+    {
+      "id": "risk-001",
+      "title": "Messenger bypass risk",
+      "description": "Owners may continue using Messenger unless the product owns payments or repeat reminders.",
+      "severity": "high",
+      "status": "needs_review"
+    }
+  ],
+  "openQuestions": [
+    {
+      "id": "question-001",
+      "question": "How many workshops will pay monthly before payment automation is included?",
+      "priority": "high",
+      "status": "open"
+    }
+  ],
+  "suggestedScoreChanges": [
+    {
+      "id": "score-workshop-001",
+      "category": "competition",
+      "currentScore": 88,
+      "suggestedScore": 90,
+      "reason": "Competitor scan did not identify a dominant local workflow platform.",
+      "confidence": 0.62,
+      "supportingClaimIds": ["claim-workshop-001"],
+      "opposingClaimIds": [],
+      "sourceIds": ["source-001"],
+      "status": "needs_review"
+    }
+  ],
+  "reportUpdates": [
+    {
+      "id": "report-update-001",
+      "chapter": "competitors",
+      "title": "GarageBox competitive position",
+      "content": "GarageBox should be tracked as a local competitor, but current public evidence does not prove category dominance.",
+      "claimIds": ["claim-workshop-001"],
+      "sourceIds": ["source-001"],
+      "status": "needs_review"
+    }
+  ]
+}

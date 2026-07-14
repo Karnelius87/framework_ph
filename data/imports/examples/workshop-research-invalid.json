@@ -1,0 +1,23 @@
+{
+  "importVersion": "1.0",
+  "importId": "",
+  "marketSlug": "workshop",
+  "researchDate": "2026-07-12",
+  "title": "Invalid workshop import",
+  "summary": "This package is intentionally invalid.",
+  "researcher": "ChatGPT",
+  "claims": [
+    {
+      "id": "claim-invalid-001",
+      "statement": "Too vague",
+      "category": "wrong_category",
+      "direction": "positive",
+      "confidence": 1.4,
+      "status": "approved",
+      "importance": "urgent",
+      "sourceIds": ["source-missing"],
+      "competitorIds": []
+    }
+  ],
+  "sources": []
+}

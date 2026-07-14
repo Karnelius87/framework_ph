@@ -1,0 +1,862 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model ScoringFramework {
+  id              String   @id @default(cuid())
+  version         String   @unique
+  label           String
+  previousVersion String?
+  active          Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  weights ScoringFrameworkWeight[]
+}
+
+model ScoringFrameworkWeight {
+  id              String   @id @default(cuid())
+  frameworkId     String
+  scoreCategoryId String?
+  key             String
+  label           String
+  weight          Float
+  sortOrder       Int
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  framework     ScoringFramework @relation(fields: [frameworkId], references: [id], onDelete: Cascade)
+  scoreCategory ScoreCategory?   @relation(fields: [scoreCategoryId], references: [id], onDelete: SetNull)
+
+  @@unique([frameworkId, key])
+}
+
+model Market {
+  id             String   @id @default(cuid())
+  slug           String   @unique
+  name           String
+  status         String
+  score          Float
+  confidence     Float
+  completeness   Float
+  chance         Float
+  recommendation String
+  stage          String
+  lastVerifiedAt DateTime?
+  freshnessStatus String   @default("unknown")
+  updatedAt      DateTime @updatedAt
+  createdAt      DateTime @default(now())
+
+  scores                MarketScore[]
+  decisionMetric        DecisionMetric?
+  researchCoverage      ResearchCoverage[]
+  criticalUnknowns      CriticalUnknown[]
+  killCriteria          KillCriterion[]
+  strategicAdvantages   StrategicAdvantage[]
+  strategicDisadvantages StrategicDisadvantage[]
+  researchActions       ResearchAction[]
+  decisionLogs          DecisionLog[]
+  packageVersions       ResearchPackageVersion[]
+  founderFitMetric      FounderFitMetric?
+  executionReadinessMetric ExecutionReadinessMetric?
+  leadershipMetric      MarketLeadershipMetric?
+  intelligenceRelations IntelligenceRelation[]
+  imports               ResearchImport[]
+  claims                Claim[]
+  assumptions           Assumption[]
+  risks                 Risk[]
+  questions             ResearchQuestion[]
+  suggestedScoreChanges SuggestedScoreChange[]
+  competitors           Competitor[]
+  reportUpdates         ReportUpdate[]
+  timelineEvents        TimelineEvent[]
+  scoreHistory          ScoreHistory[]
+  savedGraphViews       SavedGraphView[]
+  recommendationHistory RecommendationHistory[]
+  decisionReadiness     DecisionReadiness?
+  leadershipSubfactors  MarketLeadershipSubfactor[]
+  scenarios             Scenario[]
+  memoSummary           InvestmentMemoSummary?
+}
+
+model ScoreCategory {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  label     String
+  weight    Float
+  sortOrder Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  scores           MarketScore[]
+  claims           Claim[]
+  frameworkWeights ScoringFrameworkWeight[]
+  suggestedChanges SuggestedScoreChange[]
+  scoreHistory     ScoreHistory[]
+}
+
+model MarketScore {
+  id              String   @id @default(cuid())
+  marketId        String
+  scoreCategoryId String
+  score           Float
+  notes           String?
+  frameworkVersion String  @default("2.0")
+  lastVerifiedAt   DateTime?
+  freshnessStatus  String  @default("unknown")
+  updatedAt       DateTime @updatedAt
+  createdAt       DateTime @default(now())
+
+  market        Market        @relation(fields: [marketId], references: [id], onDelete: Cascade)
+  scoreCategory ScoreCategory @relation(fields: [scoreCategoryId], references: [id], onDelete: Cascade)
+
+  @@unique([marketId, scoreCategoryId])
+}
+
+model ScoreHistory {
+  id                           String   @id @default(cuid())
+  marketId                     String
+  scoreCategoryId              String
+  suggestedScoreChangeId       String?
+  previousScore                Float
+  newScore                     Float
+  previousWeightedContribution Float
+  newWeightedContribution      Float
+  totalScoreBefore             Float
+  totalScoreAfter              Float
+  frameworkVersion             String   @default("2.0")
+  weightSnapshot               String   @default("[]")
+  reason                       String
+  linkedClaimIds               String
+  linkedSourceIds              String
+  approvedAt                   DateTime @default(now())
+  approvedBy                   String
+
+  market               Market                @relation(fields: [marketId], references: [id], onDelete: Cascade)
+  scoreCategory        ScoreCategory         @relation(fields: [scoreCategoryId], references: [id], onDelete: Cascade)
+  suggestedScoreChange SuggestedScoreChange? @relation(fields: [suggestedScoreChangeId], references: [id], onDelete: SetNull)
+}
+
+model ResearchImport {
+  id                 String   @id @default(cuid())
+  importId           String   @unique
+  importVersion      String
+  sequenceNumber     Int?     @unique
+  packageKey         String?
+  packageVersion     String   @default("v1")
+  topic              String   @default("other")
+  status             String   @default("pending_review")
+  marketId           String?
+  marketSlug         String
+  researchDate       DateTime
+  title              String
+  summary            String
+  executiveSummary   String?
+  recommendation     String?
+  recommendationConfidence Float?
+  researcher         String
+  reportMarkdown     String?
+  importStatus       String   @default("pending_review")
+  validationWarnings String
+  duplicateWarnings  String
+  rawPackage         String
+  importedAt         DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  market                Market?                @relation(fields: [marketId], references: [id], onDelete: SetNull)
+  packageVersions       ResearchPackageVersion[]
+  items                 ResearchImportItem[]
+  claims                Claim[]
+  sources               Source[]
+  competitors           Competitor[]
+  assumptions           Assumption[]
+  risks                 Risk[]
+  questions             ResearchQuestion[]
+  suggestedScoreChanges SuggestedScoreChange[]
+  reportUpdates         ReportUpdate[]
+}
+
+model ResearchImportItem {
+  id               String    @id @default(cuid())
+  researchImportId String
+  itemType         String
+  externalId       String?
+  status           String    @default("needs_review")
+  payload          String
+  reviewerNote     String?
+  reviewedBy       String?
+  reviewedAt       DateTime?
+  createdAt        DateTime  @default(now())
+
+  researchImport ResearchImport @relation(fields: [researchImportId], references: [id], onDelete: Cascade)
+}
+
+model Claim {
+  id               String    @id @default(cuid())
+  externalId       String    @unique
+  statement        String
+  marketId         String
+  scoreCategoryId  String?
+  researchImportId String?
+  direction        String
+  confidence       Float
+  importance       String
+  status           String
+  scoreImpact      Float?
+  notes            String?
+  createdAt        DateTime  @default(now())
+  lastVerifiedAt   DateTime?
+  freshnessStatus  String    @default("unknown")
+  reviewedAt       DateTime?
+  incorporatedAt   DateTime?
+
+  market         Market            @relation(fields: [marketId], references: [id], onDelete: Cascade)
+  scoreCategory  ScoreCategory?    @relation(fields: [scoreCategoryId], references: [id], onDelete: SetNull)
+  researchImport ResearchImport?   @relation(fields: [researchImportId], references: [id], onDelete: SetNull)
+  sources        ClaimSource[]
+  competitors    ClaimCompetitor[]
+}
+
+model Source {
+  id               String    @id @default(cuid())
+  externalId       String    @unique
+  title            String
+  url              String
+  normalizedUrl    String
+  publisher        String
+  sourceType       String
+  publishedAt      DateTime?
+  accessedAt       DateTime
+  evidenceLevel    String
+  credibility      Float
+  notes            String?
+  status           String    @default("needs_review")
+  researchImportId String?
+  createdAt        DateTime  @default(now())
+  lastVerifiedAt   DateTime?
+  freshnessStatus  String    @default("unknown")
+  reviewedAt       DateTime?
+
+  researchImport ResearchImport? @relation(fields: [researchImportId], references: [id], onDelete: SetNull)
+  claims         ClaimSource[]
+}
+
+model ClaimSource {
+  claimId      String
+  sourceId     String
+  relationType String
+  relevance    Float?
+  excerpt      String?
+  notes        String?
+
+  claim  Claim  @relation(fields: [claimId], references: [id], onDelete: Cascade)
+  source Source @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+
+  @@id([claimId, sourceId])
+}
+
+model ClaimCompetitor {
+  claimId      String
+  competitorId String
+  relationType String?
+  notes        String?
+
+  claim      Claim      @relation(fields: [claimId], references: [id], onDelete: Cascade)
+  competitor Competitor @relation(fields: [competitorId], references: [id], onDelete: Cascade)
+
+  @@id([claimId, competitorId])
+}
+
+model Competitor {
+  id                 String    @id @default(cuid())
+  externalId         String?
+  slug               String    @unique
+  company            String
+  normalizedName     String
+  logo               String?
+  website            String
+  domain             String?
+  country            String
+  founded            String?
+  employees          String?
+  funding            String?
+  estimatedRevenue   String?
+  estimatedCustomers String?
+  pricing            String?
+  targetSegment      String
+  strengths          String
+  weaknesses         String
+  threatLevel        String
+  marketId           String?
+  researchImportId   String?
+  status             String    @default("needs_review")
+  createdAt          DateTime  @default(now())
+  lastVerifiedAt     DateTime?
+  freshnessStatus    String    @default("unknown")
+  reviewedAt         DateTime?
+
+  market         Market?           @relation(fields: [marketId], references: [id], onDelete: SetNull)
+  researchImport ResearchImport?   @relation(fields: [researchImportId], references: [id], onDelete: SetNull)
+  claims         ClaimCompetitor[]
+}
+
+model Assumption {
+  id               String    @id @default(cuid())
+  externalId       String
+  marketId         String
+  researchImportId String?
+  statement        String
+  confidence       Float?
+  status           String    @default("needs_review")
+  notes            String?
+  createdAt        DateTime  @default(now())
+  reviewedAt       DateTime?
+
+  market         Market          @relation(fields: [marketId], references: [id], onDelete: Cascade)
+  researchImport ResearchImport? @relation(fields: [researchImportId], references: [id], onDelete: SetNull)
+}
+
+model Risk {
+  id               String    @id @default(cuid())
+  externalId       String
+  marketId         String
+  researchImportId String?
+  title            String
+  description      String
+  severity         String
+  status           String    @default("needs_review")
+  notes            String?
+  createdAt        DateTime  @default(now())
+  reviewedAt       DateTime?
+
+  market         Market          @relation(fields: [marketId], references: [id], onDelete: Cascade)
+  researchImport ResearchImport? @relation(fields: [researchImportId], references: [id], onDelete: SetNull)
+}
+
+model ResearchQuestion {
+  id               String    @id @default(cuid())
+  externalId       String
+  marketId         String
+  researchImportId String?
+  question         String
+  priority         String
+  status           String    @default("open")
+  notes            String?
+  createdAt        DateTime  @default(now())
+  reviewedAt       DateTime?
+
+  market         Market          @relation(fields: [marketId], references: [id], onDelete: Cascade)
+  researchImport ResearchImport? @relation(fields: [researchImportId], references: [id], onDelete: SetNull)
+}
+
+model SuggestedScoreChange {
+  id                 String    @id @default(cuid())
+  externalId         String
+  marketId           String
+  scoreCategoryId    String
+  researchImportId   String?
+  currentScore       Float
+  suggestedScore     Float
+  reason             String
+  confidence         Float
+  supportingClaimIds String
+  opposingClaimIds   String
+  sourceIds          String
+  status             String    @default("needs_review")
+  reviewerNote       String?
+  reviewedAt         DateTime?
+  createdAt          DateTime  @default(now())
+
+  market         Market          @relation(fields: [marketId], references: [id], onDelete: Cascade)
+  scoreCategory  ScoreCategory   @relation(fields: [scoreCategoryId], references: [id], onDelete: Cascade)
+  researchImport ResearchImport? @relation(fields: [researchImportId], references: [id], onDelete: SetNull)
+  scoreHistory   ScoreHistory[]
+}
+
+model ReportUpdate {
+  id               String    @id @default(cuid())
+  externalId       String    @unique
+  marketId         String
+  researchImportId String?
+  chapter          String
+  title            String
+  content          String
+  claimIds         String
+  sourceIds        String
+  status           String    @default("needs_review")
+  reviewerNote     String?
+  createdAt        DateTime  @default(now())
+  reviewedAt       DateTime?
+  acceptedAt       DateTime?
+
+  market         Market          @relation(fields: [marketId], references: [id], onDelete: Cascade)
+  researchImport ResearchImport? @relation(fields: [researchImportId], references: [id], onDelete: SetNull)
+}
+
+model DecisionMetric {
+  id                     String   @id @default(cuid())
+  marketId               String   @unique
+  totalMarketScore       Float
+  decisionScore          Float
+  confidence             Float
+  researchCompleteness   Float
+  customerValidation     Float
+  competitorCoverage     Float
+  executionReadiness     Float
+  founderFit             Float
+  chanceOfBecomingNumberOne Float
+  criticalUnknownPenalty Float    @default(0)
+  killCriteriaPenalty    Float    @default(0)
+  formulaVersion         String   @default("1.0")
+  explanation            String
+  updatedAt              DateTime @updatedAt
+  createdAt              DateTime @default(now())
+
+  market Market @relation(fields: [marketId], references: [id], onDelete: Cascade)
+}
+
+model ResearchCoverage {
+  id                         String   @id @default(cuid())
+  marketId                   String
+  category                   String
+  label                      String
+  score                      Float
+  targetScore                Float
+  evidenceCount              Int      @default(0)
+  verifiedEvidenceCount      Int      @default(0)
+  lastUpdated                DateTime @default(now())
+  linkedClaimsCount          Int      @default(0)
+  linkedSourcesCount         Int      @default(0)
+  linkedInterviewsCount      Int      @default(0)
+  gaps                       String
+  recommendedNextAction      String
+  confidence                 Float    @default(0)
+  freshnessStatus            String   @default("unknown")
+  createdAt                  DateTime @default(now())
+  updatedAt                  DateTime @updatedAt
+
+  market Market @relation(fields: [marketId], references: [id], onDelete: Cascade)
+
+  @@unique([marketId, category])
+}
+
+model CriticalUnknown {
+  id                   String    @id @default(cuid())
+  externalId           String?
+  marketId             String
+  title                String
+  description          String
+  category             String
+  importance           String
+  currentConfidence    Float
+  targetConfidence     Float
+  status               String
+  owner                String?
+  dueDate              DateTime?
+  validationMethod     String
+  impactIfWrong        String
+  recommendedAction    String?
+  createdAt            DateTime  @default(now())
+  resolvedAt           DateTime?
+  updatedAt            DateTime  @updatedAt
+
+  market Market @relation(fields: [marketId], references: [id], onDelete: Cascade)
+}
+
+model KillCriterion {
+  id             String    @id @default(cuid())
+  externalId     String?
+  marketId       String
+  title          String
+  description    String
+  threshold      String
+  category       String
+  status         String
+  severity       String
+  evidenceStatus String
+  reviewerNote   String?
+  triggeredAt    DateTime?
+  resolvedAt     DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  market Market @relation(fields: [marketId], references: [id], onDelete: Cascade)
+}
+
+model StrategicAdvantage {
+  id             String   @id @default(cuid())
+  externalId     String?
+  marketId       String
+  title          String
+  description    String
+  evidenceStatus String
+  confidence     Float
+  capabilityType String
+  defensibility  String
+  timeHorizon    String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  market Market @relation(fields: [marketId], references: [id], onDelete: Cascade)
+}
+
+model StrategicDisadvantage {
+  id             String   @id @default(cuid())
+  externalId     String?
+  marketId       String
+  title          String
+  description    String
+  evidenceStatus String
+  confidence     Float
+  capabilityType String
+  defensibility  String
+  timeHorizon    String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  market Market @relation(fields: [marketId], references: [id], onDelete: Cascade)
+}
+
+model ResearchAction {
+  id                     String    @id @default(cuid())
+  externalId             String?
+  marketId               String
+  title                  String
+  description            String
+  priority               String
+  reason                 String
+  linkedCoverageCategory String?
+  linkedUnknownId        String?
+  linkedKillCriterionId  String?
+  estimatedImpact        Float
+  expectedConfidenceImprovement Float @default(0)
+  status                 String
+  dueDate                DateTime?
+  completedAt            DateTime?
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
+
+  market Market @relation(fields: [marketId], references: [id], onDelete: Cascade)
+}
+
+model DecisionLog {
+  id                 String    @id @default(cuid())
+  externalId         String?
+  marketId           String
+  title              String
+  decision           String
+  rationale          String
+  previousValue      String?
+  newValue           String?
+  decisionType       String
+  linkedClaims       String    @default("[]")
+  linkedSources      String    @default("[]")
+  linkedScoreChanges String    @default("[]")
+  linkedRisks        String    @default("[]")
+  approvedBy         String
+  approvedAt         DateTime  @default(now())
+  reversible         Boolean   @default(true)
+  reviewDate         DateTime?
+  createdAt          DateTime  @default(now())
+
+  market Market @relation(fields: [marketId], references: [id], onDelete: Cascade)
+}
+
+model IntelligenceRelation {
+  id            String   @id @default(cuid())
+  marketId      String?
+  fromType      String
+  fromId        String
+  toType        String
+  toId          String
+  relationType  String
+  evidenceStatus String @default("hypothesis")
+  confidence    Float?
+  createdAt     DateTime @default(now())
+
+  market Market? @relation(fields: [marketId], references: [id], onDelete: Cascade)
+
+  @@index([marketId])
+  @@index([fromType, fromId])
+  @@index([toType, toId])
+}
+
+model SavedGraphView {
+  id               String   @id @default(cuid())
+  name             String
+  marketId         String?
+  marketSlug       String?
+  filters          String   @default("{}")
+  layout           String   @default("hierarchical")
+  visibleNodeTypes String   @default("[]")
+  pinnedNodes      String   @default("[]")
+  focusedNode      String?
+  viewport         String   @default("{}")
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  market Market? @relation(fields: [marketId], references: [id], onDelete: SetNull)
+
+  @@index([marketId])
+  @@index([marketSlug])
+}
+
+model InvestmentCommitteeSnapshot {
+  id                 String   @id @default(cuid())
+  title              String
+  notes              String?
+  includedMarkets    String
+  finalistSelection  String
+  rankings           String
+  frameworkVersion   String
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+}
+
+model RecommendationHistory {
+  id                     String   @id @default(cuid())
+  marketId               String
+  previousRecommendation String
+  proposedRecommendation String
+  rationale              String
+  linkedClaims           String   @default("[]")
+  linkedSources          String   @default("[]")
+  linkedScoreChanges     String   @default("[]")
+  linkedCriticalUnknowns String   @default("[]")
+  linkedKillCriteria     String   @default("[]")
+  reviewerNote           String?
+  approved               Boolean  @default(false)
+  approvedBy             String?
+  approvedAt             DateTime?
+  createdAt              DateTime @default(now())
+
+  market Market @relation(fields: [marketId], references: [id], onDelete: Cascade)
+
+  @@index([marketId])
+}
+
+model DecisionReadiness {
+  id                       String   @id @default(cuid())
+  marketId                 String   @unique
+  overallPercentage        Float
+  blockers                 String   @default("[]")
+  missingValidation        String   @default("[]")
+  requiredActionBeforeBuild String
+  updatedAt                DateTime @updatedAt
+  createdAt                DateTime @default(now())
+
+  market Market @relation(fields: [marketId], references: [id], onDelete: Cascade)
+  items  DecisionReadinessItem[]
+}
+
+model DecisionReadinessItem {
+  id                  String   @id @default(cuid())
+  readinessId          String
+  key                 String
+  label               String
+  status              String
+  evidenceNote        String?
+  requiredAction      String?
+  updatedAt           DateTime @updatedAt
+  createdAt           DateTime @default(now())
+
+  readiness DecisionReadiness @relation(fields: [readinessId], references: [id], onDelete: Cascade)
+
+  @@unique([readinessId, key])
+}
+
+model MarketLeadershipSubfactor {
+  id           String   @id @default(cuid())
+  marketId     String
+  key          String
+  label        String
+  score        Float
+  weight       Float
+  confidence   Float
+  linkedClaims String   @default("[]")
+  linkedSources String  @default("[]")
+  reviewerNote String?
+  lastUpdated  DateTime @default(now())
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  market Market @relation(fields: [marketId], references: [id], onDelete: Cascade)
+
+  @@unique([marketId, key])
+}
+
+model Scenario {
+  id          String   @id @default(cuid())
+  marketId    String
+  name        String
+  assumptions String   @default("{}")
+  results     String   @default("{}")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  market      Market               @relation(fields: [marketId], references: [id], onDelete: Cascade)
+  adjustments ScenarioAdjustment[]
+
+  @@index([marketId])
+}
+
+model ScenarioAdjustment {
+  id         String   @id @default(cuid())
+  scenarioId String
+  key        String
+  label      String
+  baseValue  Float
+  value      Float
+  createdAt  DateTime @default(now())
+
+  scenario Scenario @relation(fields: [scenarioId], references: [id], onDelete: Cascade)
+
+  @@unique([scenarioId, key])
+}
+
+model InvestmentMemoSummary {
+  id                           String   @id @default(cuid())
+  marketId                     String   @unique
+  thesis                       String
+  whyNow                       String
+  whyThisMarket                String
+  whyWeCanWin                  String
+  whyWeMayLose                 String
+  topRisks                     String   @default("[]")
+  criticalUnknowns             String   @default("[]")
+  killCriteria                 String   @default("[]")
+  requiredValidation           String   @default("[]")
+  recommendedNextStep          String
+  currentRecommendation        String
+  recommendationConfidence     Float
+  updatedAt                    DateTime @updatedAt
+  createdAt                    DateTime @default(now())
+
+  market Market @relation(fields: [marketId], references: [id], onDelete: Cascade)
+}
+
+model InvestmentCommitteeMeeting {
+  id        String   @id @default(cuid())
+  title     String
+  sections  String
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model RankingSnapshot {
+  id               String   @id @default(cuid())
+  timestamp        DateTime @default(now())
+  includedMarkets  String
+  marketScores     String
+  decisionScores   String
+  confidenceValues String
+  recommendations  String
+  frameworkVersion String
+  rankingOrder     String
+  createdAt        DateTime @default(now())
+}
+
+model ResearchPackageVersion {
+  id               String   @id @default(cuid())
+  researchImportId String?
+  marketId         String?
+  packageKey       String
+  sequenceNumber   Int
+  version          String
+  topic            String
+  status           String
+  title            String
+  researcher       String
+  researchDate     DateTime
+  createdAt        DateTime @default(now())
+
+  researchImport ResearchImport? @relation(fields: [researchImportId], references: [id], onDelete: SetNull)
+  market         Market?         @relation(fields: [marketId], references: [id], onDelete: SetNull)
+
+  @@unique([packageKey, version])
+  @@index([sequenceNumber])
+}
+
+model FounderFitMetric {
+  id                    String   @id @default(cuid())
+  marketId              String   @unique
+  score                 Float
+  domainKnowledge       Float
+  localAccess           Float
+  technicalCapability   Float
+  salesCapability       Float
+  distributionAccess    Float
+  capitalRequirementFit Float
+  operationalFit        Float
+  explanation           String
+  updatedAt             DateTime @updatedAt
+  createdAt             DateTime @default(now())
+
+  market Market @relation(fields: [marketId], references: [id], onDelete: Cascade)
+}
+
+model ExecutionReadinessMetric {
+  id                    String   @id @default(cuid())
+  marketId              String   @unique
+  score                 Float
+  customerAccess        Float
+  prototypeReadiness    Float
+  regulatoryReadiness   Float
+  dataAvailability      Float
+  integrationComplexity Float
+  onboardingComplexity  Float
+  timeToMvp             Float
+  costToValidate        Float
+  explanation           String
+  updatedAt             DateTime @updatedAt
+  createdAt             DateTime @default(now())
+
+  market Market @relation(fields: [marketId], references: [id], onDelete: Cascade)
+}
+
+model MarketLeadershipMetric {
+  id                     String   @id @default(cuid())
+  marketId               String   @unique
+  chance                 Float
+  competitiveIntensity   Float
+  marketFragmentation    Float
+  incumbentStrength      Float
+  localizationAdvantage  Float
+  distributionDifficulty Float
+  switchingBarriers      Float
+  speedAdvantage         Float
+  explanation            String
+  updatedAt              DateTime @updatedAt
+  createdAt              DateTime @default(now())
+
+  market Market @relation(fields: [marketId], references: [id], onDelete: Cascade)
+}
+
+model FreshnessRule {
+  id             String   @id @default(cuid())
+  key            String   @unique
+  label          String
+  targetType     String
+  staleAfterDays Int
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model TimelineEvent {
+  id               String   @id @default(cuid())
+  marketId         String
+  type             String
+  title            String
+  description      String?
+  linkedEntityType String?
+  linkedEntityId   String?
+  createdAt        DateTime @default(now())
+  createdBy        String   @default("Local Researcher")
+
+  market Market @relation(fields: [marketId], references: [id], onDelete: Cascade)
+}
