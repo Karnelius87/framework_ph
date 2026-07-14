@@ -25,6 +25,7 @@ import {
   type ValidationGateStatus,
 } from "@/data/research";
 import { getDb } from "@/lib/db";
+import { approveMvpScopeAction } from "@/app/markets/[slug]/actions";
 import { productStrategyFromSnapshot } from "@/lib/research/product-strategy";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -233,7 +234,7 @@ export default async function MarketPage({ params }: { params: Promise<{ slug: s
           {productStrategy ? <BuildRoadmapSection roadmap={productStrategy.buildRoadmap} /> : null}
           <CommercialMetricsSection groups={productStrategy?.commercialMetricGroups ?? []} />
           {productStrategy ? <ValidationGateSection currentGate={currentGate} completedGates={completedGates} blockedGates={blockedGates} gates={productStrategy.validationGates} /> : null}
-          <CurrentActionSection action={productAction} upcomingActions={upcomingProductActions} importedActions={decoratedResearchActions} />
+          <CurrentActionSection slug={slug} action={productAction} upcomingActions={upcomingProductActions} importedActions={decoratedResearchActions} />
 
           <Section title="Top Reasons to Pursue">
             <DataGrid items={(dbMarket?.strategicAdvantages ?? []).slice(0, 3)} render={(item) => (
@@ -703,14 +704,18 @@ function ValidationGateSection({
 }
 
 function CurrentActionSection({
+  slug,
   action,
   upcomingActions,
   importedActions,
 }: {
+  slug: string;
   action: ProductAction;
   upcomingActions: ProductAction[];
   importedActions: Array<ImportedResearchAction & { phase: ProductActionPhase; blockedBy: string[]; unlocks: string[]; completionCriteria: string[] }>;
 }) {
+  const canApproveMvpScope = slug === "workshop" && action.id === "approve-workshop-mvp-scope";
+
   return (
     <Section title="Current Next Action">
       <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_360px]">
@@ -728,6 +733,14 @@ function CurrentActionSection({
             <MiniList title="Why Not Later" items={[action.whyNotLater]} />
             <MiniList title="Blocked By" items={action.blockedBy.length ? action.blockedBy : ["No blocker recorded"]} />
             <MiniList title="Completion Criteria" items={action.completionCriteria} />
+            {canApproveMvpScope ? (
+              <form action={approveMvpScopeAction} className="mt-1 rounded-md border bg-background p-3">
+                <input type="hidden" name="slug" value={slug} />
+                <div className="mb-2 text-sm font-medium">Ready to approve this step?</div>
+                <p className="mb-3 text-xs text-muted-foreground">This creates the approval import automatically and moves Workshop to demo build.</p>
+                <Button type="submit" size="sm">Approve MVP Scope</Button>
+              </form>
+            ) : null}
           </CardContent>
         </Card>
         <Card>
