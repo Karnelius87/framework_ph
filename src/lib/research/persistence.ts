@@ -5,7 +5,9 @@ import { calculateDecisionScore, criticalUnknownPenalty, decisionScoreExplanatio
 import { CURRENT_SCORING_FRAMEWORK_VERSION, calculateWeightedMarketScore, scoringCategories, scoringWeightSnapshot, weightedContribution } from "@/config/scoring";
 import { domainFromUrl, getDuplicateWarnings, normalizeText, normalizeUrl } from "@/lib/research/duplicates";
 import { decodeJson, encodeJson } from "@/lib/research/json";
-import { researchPackageSchema, type ResearchPackage } from "@/lib/research/schema";
+import { productStrategySchema, researchPackageSchema, type ResearchPackage } from "@/lib/research/schema";
+import { productStrategySnapshotData } from "@/lib/research/product-strategy";
+import type { ProductStrategy } from "@/data/research";
 
 export const LOCAL_REVIEWER = "Local Researcher";
 
@@ -79,6 +81,7 @@ function itemPayloads(pkg: ResearchPackage) {
     ...pkg.coverageUpdates.map((payload) => ({ itemType: "coverage_update", externalId: payload.id ?? payload.category, payload })),
     ...pkg.decisionLogEntries.map((payload) => ({ itemType: "decision_log", externalId: payload.id, payload })),
     ...pkg.reportUpdates.map((payload) => ({ itemType: "report_update", externalId: payload.id, payload })),
+    ...(pkg.productStrategy ? [{ itemType: "product_strategy", externalId: `${pkg.marketSlug}-product-strategy`, payload: pkg.productStrategy }] : []),
   ];
 }
 
@@ -162,8 +165,8 @@ export async function saveResearchImport(db: PrismaClient, value: unknown) {
     });
   }
 
-  revalidatePath("/research/inbox");
-  revalidatePath(`/markets/${pkg.marketSlug}`);
+  safeRevalidatePath("/research/inbox");
+  safeRevalidatePath(`/markets/${pkg.marketSlug}`);
 
   return {
     success: true as const,
@@ -196,9 +199,9 @@ export async function reviewImportItem(db: PrismaClient, itemId: string, status:
   }
 
   await updateImportStatus(db, item.researchImportId);
-  revalidatePath("/research/inbox");
-  revalidatePath(`/research/inbox/${item.researchImport.importId}`);
-  revalidatePath(`/markets/${item.researchImport.marketSlug}`);
+  safeRevalidatePath("/research/inbox");
+  safeRevalidatePath(`/research/inbox/${item.researchImport.importId}`);
+  safeRevalidatePath(`/markets/${item.researchImport.marketSlug}`);
 }
 
 export async function incorporateItem(db: PrismaClient, itemId: string) {
@@ -495,6 +498,28 @@ export async function incorporateItem(db: PrismaClient, itemId: string) {
       },
     });
   }
+
+  if (item.itemType === "product_strategy") {
+    const parsed = productStrategySchema.safeParse(payload);
+    if (!parsed.success) return;
+
+    const strategy = parsed.data as ProductStrategy;
+    const data = productStrategySnapshotData({
+      marketId: market.id,
+      researchImportId: item.researchImportId,
+      sourceImportItemId: item.id,
+      strategy,
+      approvedBy: LOCAL_REVIEWER,
+    });
+
+    await db.productStrategySnapshot.upsert({
+      where: { marketId: market.id },
+      create: data,
+      update: data,
+    });
+
+    await timeline(db, market.id, "product_strategy_approved", "Product strategy approved", strategy.productName.value, "ProductStrategySnapshot", item.id);
+  }
 }
 
 export async function approveScoreChange(db: PrismaClient, itemId: string, reviewerNote?: string) {
@@ -594,8 +619,8 @@ export async function approveScoreChange(db: PrismaClient, itemId: string, revie
   });
   await recomputeDecisionMetric(db, market.id);
   await updateImportStatus(db, item.researchImportId);
-  revalidatePath(`/markets/${market.slug}`);
-  revalidatePath(`/research/inbox/${item.researchImport.importId}`);
+  safeRevalidatePath(`/markets/${market.slug}`);
+  safeRevalidatePath(`/research/inbox/${item.researchImport.importId}`);
 }
 
 function totalScore(scores: { key: string; score: number }[]) {
@@ -712,4 +737,13 @@ export async function recomputeDecisionMetric(db: PrismaClient, marketId: string
 
 function titleCase(value: string) {
   return value.replace(/_/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
+function safeRevalidatePath(path: string) {
+  try {
+    revalidatePath(path);
+  } catch (error) {
+    if (error instanceof Error && error.message.includes("static generation store missing")) return;
+    throw error;
+  }
 }

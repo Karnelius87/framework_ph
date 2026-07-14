@@ -25,6 +25,7 @@ import {
   type ValidationGateStatus,
 } from "@/data/research";
 import { getDb } from "@/lib/db";
+import { productStrategyFromSnapshot } from "@/lib/research/product-strategy";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -100,6 +101,7 @@ export default async function MarketPage({ params }: { params: Promise<{ slug: s
       competitors: { orderBy: { company: "asc" } },
       timelineEvents: { orderBy: { createdAt: "desc" } },
       reportUpdates: { orderBy: { createdAt: "desc" } },
+      productStrategySnapshot: true,
       imports: { orderBy: { importedAt: "desc" }, take: 1 },
       claims: { include: { scoreCategory: true, sources: { include: { source: true } } }, orderBy: { createdAt: "desc" } },
     },
@@ -129,7 +131,9 @@ export default async function MarketPage({ params }: { params: Promise<{ slug: s
   const decisionMetric = dbMarket?.decisionMetric;
   const decisionScore = decisionMetric?.decisionScore ?? calculateDecisionScore(fallbackDecisionInput);
   const decisionFormulaText = decisionMetric?.explanation ?? decisionScoreExplanation(fallbackDecisionInput);
-  const productStrategy = market.productStrategy;
+  const productStrategy = dbMarket?.productStrategySnapshot
+    ? productStrategyFromSnapshot(dbMarket.productStrategySnapshot)
+    : market.productStrategy;
   const productAction = productStrategy ? selectCurrentProductAction(productStrategy) : neutralProductAction(market.name);
   const upcomingProductActions = productStrategy ? productStrategy.productActions
     .filter((action) => action.id !== productAction.id && !["completed", "rejected"].includes(action.status))

@@ -81,6 +81,7 @@ model Market {
   leadershipSubfactors  MarketLeadershipSubfactor[]
   scenarios             Scenario[]
   memoSummary           InvestmentMemoSummary?
+  productStrategySnapshot ProductStrategySnapshot?
 }
 
 model ScoreCategory {
@@ -178,6 +179,7 @@ model ResearchImport {
   questions             ResearchQuestion[]
   suggestedScoreChanges SuggestedScoreChange[]
   reportUpdates         ReportUpdate[]
+  productStrategySnapshots ProductStrategySnapshot[]
 }
 
 model ResearchImportItem {
@@ -193,6 +195,50 @@ model ResearchImportItem {
   createdAt        DateTime  @default(now())
 
   researchImport ResearchImport @relation(fields: [researchImportId], references: [id], onDelete: Cascade)
+}
+
+model ProductStrategySnapshot {
+  id                         String   @id @default(cuid())
+  marketId                   String   @unique
+  researchImportId           String?
+  sourceImportItemId         String?
+  productName                String
+  businessModel              String   @default("[]")
+  currentProductStage        String
+  currentValidationStage     String
+  idealCustomerProfile       String
+  primaryUser                String
+  coreProblem                String
+  productWedge               String
+  coreWorkflow               String   @default("[]")
+  mvpObjective               String
+  mvpFeatures                String   @default("[]")
+  notInMvp                   String   @default("[]")
+  mvpSuccessCriteria         String   @default("[]")
+  v2Features                 String   @default("[]")
+  v3Features                 String   @default("[]")
+  longTermPlatformThesis     String
+  keyProductAssumptions      String   @default("[]")
+  productRisks               String   @default("[]")
+  productReadiness           Float
+  pitchReadiness             Float
+  commercialValidation       Float
+  productValidation          Float
+  expansionValidation        Float
+  commercialMetricGroups     String   @default("[]")
+  productDecisionStatus      String
+  buildRoadmap               String   @default("[]")
+  validationGates            String   @default("[]")
+  productActions             String   @default("[]")
+  primaryBlocker             String
+  rawStrategy                String
+  approvedBy                 String   @default("Local Researcher")
+  approvedAt                 DateTime @default(now())
+  createdAt                  DateTime @default(now())
+  updatedAt                  DateTime @updatedAt
+
+  market         Market          @relation(fields: [marketId], references: [id], onDelete: Cascade)
+  researchImport ResearchImport? @relation(fields: [researchImportId], references: [id], onDelete: SetNull)
 }
 
 model Claim {

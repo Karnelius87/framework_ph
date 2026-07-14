@@ -194,6 +194,7 @@ function ImportPreview({ pkg }: { pkg?: ResearchPackage }) {
           <div><div className="text-muted-foreground">Kill Criteria</div><div className="font-mono">{pkg.killCriteria.length}</div></div>
           <div><div className="text-muted-foreground">Coverage Updates</div><div className="font-mono">{pkg.coverageUpdates.length}</div></div>
           <div><div className="text-muted-foreground">Decision Logs</div><div className="font-mono">{pkg.decisionLogEntries.length}</div></div>
+          <div><div className="text-muted-foreground">Product Strategy</div><div>{pkg.productStrategy ? "Included" : "None"}</div></div>
         </div>
         <p className="text-muted-foreground">{pkg.summary}</p>
         {!result.success ? <div className="rounded-md border p-3 text-xs text-destructive">{result.error.message}</div> : null}

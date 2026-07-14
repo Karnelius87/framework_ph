@@ -10,6 +10,7 @@
     "test": "node scripts/test-market-isolation.mjs",
     "test:intelligence": "tsx scripts/test-intelligence-graph.ts",
     "test:committee": "tsx scripts/test-investment-committee.ts",
+    "import:workshop-strategy": "tsx scripts/import-workshop-strategy-source-of-truth.ts",
     "typecheck": "tsc --noEmit",
     "db:generate": "prisma generate",
     "db:migrate": "node scripts/apply-local-migration.mjs",

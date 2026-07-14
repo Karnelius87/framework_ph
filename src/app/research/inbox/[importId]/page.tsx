@@ -63,6 +63,7 @@ export default async function ResearchImportReviewPage({ params }: { params: Pro
               <TabsTrigger value="coverage">Coverage</TabsTrigger>
               <TabsTrigger value="decisions">Decision Log</TabsTrigger>
               <TabsTrigger value="reports">Report Updates</TabsTrigger>
+              <TabsTrigger value="strategy">Product Strategy</TabsTrigger>
             </TabsList>
             <TabsContent value="claims"><ItemSection items={itemsByType("claim")} /></TabsContent>
             <TabsContent value="sources"><ItemSection items={itemsByType("source")} /></TabsContent>
@@ -78,6 +79,7 @@ export default async function ResearchImportReviewPage({ params }: { params: Pro
             <TabsContent value="actions"><ItemSection items={itemsByType("research_action")} /></TabsContent>
             <TabsContent value="coverage"><ItemSection items={itemsByType("coverage_update")} /></TabsContent>
             <TabsContent value="decisions"><ItemSection items={itemsByType("decision_log")} /></TabsContent>
+            <TabsContent value="strategy"><ItemSection items={itemsByType("product_strategy")} /></TabsContent>
             <TabsContent value="scores">
               <div className="grid gap-3">
                 {itemsByType("suggested_score_change").map((item) => (

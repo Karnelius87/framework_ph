@@ -40,10 +40,13 @@ async function main() {
 async function ensureServer() {
   if (await canFetch(BASE_URL)) return;
 
-  devServer = spawn(process.platform === "win32" ? "npm.cmd" : "npm", ["run", "dev"], {
+  const command = process.platform === "win32" ? "cmd.exe" : "npm";
+  const args = process.platform === "win32" ? ["/c", "npm.cmd", "run", "dev"] : ["run", "dev"];
+  devServer = spawn(command, args, {
     cwd: process.cwd(),
     stdio: "ignore",
     shell: false,
+    windowsHide: true,
     env: { ...process.env },
   });
 
@@ -149,10 +152,18 @@ async function testDatabaseIsolation() {
         researchCoverage: true,
         decisionLogs: true,
         scoreHistory: true,
+        productStrategySnapshot: true,
       },
     });
 
     for (const market of markets) {
+      if (market.productStrategySnapshot && market.productStrategySnapshot.marketId !== market.id) {
+        throw new Error(`Product strategy snapshot for ${market.slug} is attached to ${market.productStrategySnapshot.marketId}, expected ${market.id}`);
+      }
+      if (market.slug === "workshop" && !market.productStrategySnapshot) {
+        throw new Error("Workshop should have an imported product strategy snapshot.");
+      }
+
       for (const collection of ["researchActions", "criticalUnknowns", "killCriteria", "researchCoverage", "decisionLogs", "scoreHistory"]) {
         for (const item of market[collection]) {
           if (item.marketId !== market.id) {

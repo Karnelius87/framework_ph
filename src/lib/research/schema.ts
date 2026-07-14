@@ -258,6 +258,117 @@ export const decisionLogEntrySchema = z.object({
   reviewDate: z.string().optional(),
 });
 
+const productDecisionStatuses = ["hypothesis", "needs_review", "approved", "validated", "disproven"] as const;
+const productStages = ["market_research", "product_thesis", "mvp_scope", "demo_build", "pitching", "pilot", "product_validation", "scale"] as const;
+const roadmapStatuses = ["hypothesis", "planned", "approved", "building", "testing", "completed", "rejected"] as const;
+const validationGateStatuses = ["completed", "current", "blocked"] as const;
+const productActionPhases = [
+  "market_uncertainty",
+  "icp",
+  "core_problem",
+  "product_wedge",
+  "mvp_scope",
+  "demo_build",
+  "sales_pitch",
+  "commercial_outreach",
+  "pilot",
+  "product_usage",
+  "v2",
+  "expansion_economics",
+  "supplier_marketplace_economics",
+  "scale",
+] as const;
+
+const productDecisionStatusSchema = z.enum(productDecisionStatuses);
+
+function productFieldSchema<T extends z.ZodTypeAny>(valueSchema: T) {
+  return z.object({
+    value: valueSchema,
+    status: productDecisionStatusSchema.default("needs_review"),
+    confidence: z.number().min(0).max(100).default(0),
+    linkedClaims: z.array(z.string()).default([]),
+    linkedSources: z.array(z.string()).default([]),
+    linkedAssumptions: z.array(z.string()).default([]),
+    reviewerNote: z.string().optional(),
+    lastUpdated: z.string().default("2026-07-14"),
+  });
+}
+
+export const commercialMetricGroupSchema = z.object({
+  title: z.string().min(1),
+  metrics: z.array(z.string().min(1)).default([]),
+});
+
+export const buildRoadmapStageSchema = z.object({
+  id: z.enum(["mvp", "v2", "v3", "platform"]),
+  label: z.string().min(1),
+  objective: z.string().min(1),
+  targetUser: z.string().min(1),
+  keyFeatures: z.array(z.string().min(1)).default([]),
+  dependencies: z.array(z.string().min(1)).default([]),
+  validationRequired: z.array(z.string().min(1)).default([]),
+  successCriteria: z.array(z.string().min(1)).default([]),
+  status: z.enum(roadmapStatuses).default("hypothesis"),
+  confidence: z.number().min(0).max(100).default(0),
+});
+
+export const validationGateSchema = z.object({
+  id: z.string().min(1),
+  label: z.string().min(1),
+  status: z.enum(validationGateStatuses),
+  requirements: z.array(z.object({
+    label: z.string().min(1),
+    status: z.enum(validationGateStatuses),
+  })).default([]),
+  nextGate: z.string().optional(),
+});
+
+export const productActionSchema = z.object({
+  id: z.string().min(1),
+  title: z.string().min(1),
+  phase: z.enum(productActionPhases),
+  status: z.enum(roadmapStatuses).default("hypothesis"),
+  dependsOn: z.array(z.string()).default([]),
+  blockedBy: z.array(z.string()).default([]),
+  unlocks: z.array(z.string()).default([]),
+  isCurrentAction: z.boolean().optional(),
+  whyNow: z.string().min(1),
+  whyNotLater: z.string().min(1),
+  completionCriteria: z.array(z.string()).default([]),
+});
+
+export const productStrategySchema = z.object({
+  productName: productFieldSchema(z.string().min(1)),
+  businessModel: productFieldSchema(z.array(z.string().min(1)).default([])),
+  currentProductStage: z.enum(productStages),
+  currentValidationStage: z.string().min(1),
+  idealCustomerProfile: productFieldSchema(z.string().min(1)),
+  primaryUser: productFieldSchema(z.string().min(1)),
+  coreProblem: productFieldSchema(z.string().min(1)),
+  productWedge: productFieldSchema(z.string().min(1)),
+  coreWorkflow: productFieldSchema(z.array(z.string().min(1)).default([])),
+  mvpObjective: productFieldSchema(z.string().min(1)),
+  mvpFeatures: productFieldSchema(z.array(z.string().min(1)).default([])),
+  notInMvp: productFieldSchema(z.array(z.string().min(1)).default([])),
+  mvpSuccessCriteria: productFieldSchema(z.array(z.string().min(1)).default([])),
+  v2Features: productFieldSchema(z.array(z.string().min(1)).default([])),
+  v3Features: productFieldSchema(z.array(z.string().min(1)).default([])),
+  longTermPlatformThesis: productFieldSchema(z.string().min(1)),
+  keyProductAssumptions: productFieldSchema(z.array(z.string().min(1)).default([])),
+  productRisks: productFieldSchema(z.array(z.string().min(1)).default([])),
+  productReadiness: z.number().min(0).max(100),
+  pitchReadiness: z.number().min(0).max(100),
+  commercialValidation: z.number().min(0).max(100),
+  productValidation: z.number().min(0).max(100),
+  expansionValidation: z.number().min(0).max(100),
+  commercialMetricGroups: z.array(commercialMetricGroupSchema).default([]),
+  productDecisionStatus: productDecisionStatusSchema,
+  buildRoadmap: z.array(buildRoadmapStageSchema).default([]),
+  validationGates: z.array(validationGateSchema).default([]),
+  productActions: z.array(productActionSchema).default([]),
+  primaryBlocker: z.string().min(1),
+});
+
 const packageCoreSchema = z.object({
   importVersion: z.enum(["1.0", "2.0"]),
   importId: z.string().min(1),
@@ -290,6 +401,7 @@ const packageCoreSchema = z.object({
   nextResearchActions: z.array(nextResearchActionSchema).default([]),
   coverageUpdates: z.array(coverageUpdateSchema).default([]),
   decisionLogEntries: z.array(decisionLogEntrySchema).default([]),
+  productStrategy: productStrategySchema.optional(),
 });
 
 const scoreCategoryMap = new Set<string>(scoringCategories.map((category) => category.key));
@@ -361,6 +473,84 @@ function normalizeProbability(value: unknown) {
   return Math.max(0, Math.min(1, value > 1 ? value / 100 : value));
 }
 
+function normalizeProductConfidence(value: unknown, fallback = 0) {
+  if (typeof value !== "number" || Number.isNaN(value)) return fallback;
+  return normalizePercent(value <= 1 ? value * 100 : value, fallback);
+}
+
+function normalizeProductDecisionStatus(value: unknown) {
+  const status = String(value ?? "");
+  return productDecisionStatuses.includes(status as (typeof productDecisionStatuses)[number]) ? status : "needs_review";
+}
+
+function normalizeProductList(value: unknown) {
+  if (Array.isArray(value)) return value.filter((item): item is string => typeof item === "string" && item.trim().length > 0);
+  if (typeof value === "string" && value.trim().length > 0) return [value];
+  return undefined;
+}
+
+function normalizeProductField(value: unknown, expected: "string" | "list") {
+  const defaultStatus = "needs_review";
+  const defaultLastUpdated = "2026-07-14";
+
+  if (value && typeof value === "object" && !Array.isArray(value)) {
+    const record = value as Record<string, unknown>;
+    const normalizedValue = expected === "list" ? normalizeProductList(record.value) : firstString(record.value);
+    return {
+      ...record,
+      value: normalizedValue ?? record.value,
+      status: normalizeProductDecisionStatus(record.status),
+      confidence: normalizeProductConfidence(record.confidence),
+      linkedClaims: idList(record.linkedClaims),
+      linkedSources: idList(record.linkedSources),
+      linkedAssumptions: idList(record.linkedAssumptions),
+      lastUpdated: firstString(record.lastUpdated) ?? defaultLastUpdated,
+    };
+  }
+
+  const normalizedValue = expected === "list" ? normalizeProductList(value) : firstString(value);
+  return normalizedValue === undefined ? value : {
+    value: normalizedValue,
+    status: defaultStatus,
+    confidence: 0,
+    linkedClaims: [],
+    linkedSources: [],
+    linkedAssumptions: [],
+    lastUpdated: defaultLastUpdated,
+  };
+}
+
+function normalizeProductStrategyInput(value: unknown) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return value;
+  const input = value as Record<string, unknown>;
+
+  return {
+    ...input,
+    productName: normalizeProductField(input.productName ?? input.product, "string"),
+    businessModel: normalizeProductField(input.businessModel ?? input.revenueModel, "list"),
+    idealCustomerProfile: normalizeProductField(input.idealCustomerProfile ?? input.targetCustomer, "string"),
+    primaryUser: normalizeProductField(input.primaryUser, "string"),
+    coreProblem: normalizeProductField(input.coreProblem, "string"),
+    productWedge: normalizeProductField(input.productWedge, "string"),
+    coreWorkflow: normalizeProductField(input.coreWorkflow, "list"),
+    mvpObjective: normalizeProductField(input.mvpObjective ?? input.mvp, "string"),
+    mvpFeatures: normalizeProductField(input.mvpFeatures, "list"),
+    notInMvp: normalizeProductField(input.notInMvp, "list"),
+    mvpSuccessCriteria: normalizeProductField(input.mvpSuccessCriteria, "list"),
+    v2Features: normalizeProductField(input.v2Features, "list"),
+    v3Features: normalizeProductField(input.v3Features, "list"),
+    longTermPlatformThesis: normalizeProductField(input.longTermPlatformThesis, "string"),
+    keyProductAssumptions: normalizeProductField(input.keyProductAssumptions, "list"),
+    productRisks: normalizeProductField(input.productRisks, "list"),
+    productReadiness: normalizeProductConfidence(input.productReadiness),
+    pitchReadiness: normalizeProductConfidence(input.pitchReadiness),
+    commercialValidation: normalizeProductConfidence(input.commercialValidation),
+    productValidation: normalizeProductConfidence(input.productValidation),
+    expansionValidation: normalizeProductConfidence(input.expansionValidation),
+    productDecisionStatus: normalizeProductDecisionStatus(input.productDecisionStatus),
+  };
+}
+
 function actionImpact(item: Record<string, unknown>) {
   if (typeof item.estimatedImpact === "number") return normalizePercent(item.estimatedImpact);
   if (item.priority === "critical") return 9;
@@ -376,6 +566,7 @@ function normalizeResearchPackageInput(value: unknown) {
   const updatedScores = Array.isArray(input.updatedScores) ? input.updatedScores : input.suggestedScoreChanges;
   const marketSlug = typeof input.marketSlug === "string" ? input.marketSlug : typeof input.market === "string" ? input.market : "";
   const executiveSummary = typeof input.executiveSummary === "string" ? input.executiveSummary : undefined;
+  const productStrategy = input.productStrategy ?? input.strategy;
 
   return {
     ...input,
@@ -386,6 +577,7 @@ function normalizeResearchPackageInput(value: unknown) {
     title: typeof input.title === "string" ? input.title : `Research Package ${input.importId ?? ""}`,
     summary: typeof input.summary === "string" ? input.summary : executiveSummary ?? "No summary provided.",
     executiveSummary,
+    productStrategy: productStrategy ? normalizeProductStrategyInput(productStrategy) : undefined,
     sources: arrayInput(input.sources).map((source) => {
       const item = source as Record<string, unknown>;
       return { ...item, url: normalizeUrl(item.url, item.id) };
