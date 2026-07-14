@@ -4,15 +4,26 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getMarket } from "@/data/research";
 import { getDb } from "@/lib/db";
-import { approveMvpScope } from "@/lib/research/product-strategy-approvals";
+import { approveCurrentProductAction, approveProductStrategy } from "@/lib/research/product-strategy-approvals";
 import { productStrategyFromSnapshot } from "@/lib/research/product-strategy";
 import { reviewImportItem, saveResearchImport } from "@/lib/research/persistence";
 import { researchPackageSchema } from "@/lib/research/schema";
 
 export async function approveMvpScopeAction(formData: FormData) {
   const slug = String(formData.get("slug") ?? "");
-  if (slug !== "workshop") throw new Error("MVP scope approval is currently only configured for Workshop.");
+  await approveProductStrategyChange(slug, "current_action", "approve-workshop-mvp-scope");
+  redirect(`/markets/${slug}`);
+}
 
+export async function approveProductStrategyAction(formData: FormData) {
+  const slug = String(formData.get("slug") ?? "");
+  const approvalType = String(formData.get("approvalType") ?? "product_strategy");
+  const actionId = String(formData.get("actionId") ?? "");
+  await approveProductStrategyChange(slug, approvalType, actionId);
+  redirect(`/markets/${slug}`);
+}
+
+async function approveProductStrategyChange(slug: string, approvalType: string, actionId: string) {
   const db = getDb();
   const dbMarket = await db.market.findUnique({
     where: { slug },
@@ -26,27 +37,29 @@ export async function approveMvpScopeAction(formData: FormData) {
     : staticMarket?.productStrategy;
   if (!currentStrategy) throw new Error("No product strategy exists to approve.");
 
-  const alreadyApproved = currentStrategy.productActions.some((action) => action.id === "approve-workshop-mvp-scope" && action.status === "completed");
-  if (alreadyApproved) {
-    redirect(`/markets/${slug}`);
-  }
-
-  const approvedStrategy = approveMvpScope(currentStrategy);
+  const approvedStrategy = approvalType === "current_action"
+    ? approveCurrentProductAction(currentStrategy, actionId)
+    : approveProductStrategy(currentStrategy);
   const timestamp = new Date().toISOString().replace(/[-:T.Z]/g, "").slice(0, 14);
+  const title = approvalType === "current_action" ? "Product action approved" : "Product strategy approved";
+  const summary = approvalType === "current_action"
+    ? `Approves product action "${actionId}" and advances the Workshop product workflow.`
+    : "Approves the current product strategy fields as the active decision baseline.";
+
   const pkg = researchPackageSchema.parse({
     importVersion: "2.0",
-    importId: `workshop-mvp-scope-approved-${timestamp}`,
+    importId: `${slug}-${approvalType.replaceAll("_", "-")}-approved-${timestamp}`,
     version: "v1",
     marketSlug: slug,
     topic: "product",
     researchDate: new Date().toISOString().slice(0, 10),
-    title: "Workshop MVP scope approved",
-    summary: "Approves the Workshop MVP scope and advances the current product action to building a pitchable demo.",
-    executiveSummary: "The Workshop MVP scope is approved. The active source of truth now moves from MVP scope approval to demo build readiness.",
-    recommendation: "Build pitchable Workshop demo",
+    title,
+    summary,
+    executiveSummary: summary,
+    recommendation: approvalType === "current_action" ? "Continue to next product action" : "Use approved product strategy as baseline",
     recommendationConfidence: 0.7,
     researcher: "Portal Action",
-    reportMarkdown: "## Decision\n\nWorkshop MVP scope approved from the Market Detail action. This generated import is the audit trail and source of truth update.",
+    reportMarkdown: `## Decision\n\n${summary}\n\nThis generated import is the audit trail and source of truth update.`,
     claims: [],
     sources: [],
     competitors: [],
@@ -77,8 +90,7 @@ export async function approveMvpScopeAction(formData: FormData) {
   const strategyItem = researchImport?.items.find((item) => item.itemType === "product_strategy");
   if (!strategyItem) throw new Error("Approval import was created without a product strategy item.");
 
-  await reviewImportItem(db, strategyItem.id, "verified", "Approved from Workshop Market Detail.");
+  await reviewImportItem(db, strategyItem.id, "verified", "Approved from Market Detail.");
   revalidatePath(`/markets/${slug}`);
   revalidatePath("/research/inbox");
-  redirect(`/markets/${slug}`);
 }

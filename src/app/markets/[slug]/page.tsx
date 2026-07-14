@@ -26,7 +26,8 @@ import {
   type ValidationGateStatus,
 } from "@/data/research";
 import { getDb } from "@/lib/db";
-import { approveMvpScopeAction } from "@/app/markets/[slug]/actions";
+import { approveProductStrategyAction } from "@/app/markets/[slug]/actions";
+import { pendingApprovalLabels } from "@/lib/research/product-strategy-approvals";
 import { productStrategyFromSnapshot } from "@/lib/research/product-strategy";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -146,6 +147,7 @@ export default async function MarketPage({ params }: { params: Promise<{ slug: s
   const blockedGates = productStrategy ? productStrategy.validationGates.filter((gate) => gate.status === "blocked") : [];
   const recommendation = productStrategy ? topRecommendation(productStrategy, market.recommendation) : "Continue Research";
   const primaryBlocker = productAction.blockedBy[0] ?? (productStrategy ? productStrategy.primaryBlocker : `${market.name} ICP and product wedge have not been approved.`);
+  const pendingApprovals = productStrategy ? pendingApprovalLabels(productStrategy) : [];
 
   const coverage = dbMarket?.researchCoverage ?? [];
   const activeCoverage = coverage.filter((item) => !isArchivedCoverageCategory(item.category, item.label, item.freshnessStatus));
@@ -217,6 +219,8 @@ export default async function MarketPage({ params }: { params: Promise<{ slug: s
               </div>
             </div>
           </Section>
+
+          {productStrategy ? <ApprovalCenterSection slug={slug} action={productAction} pendingApprovals={pendingApprovals} /> : null}
 
           <WhatWeAreBuildingCard marketName={market.name} strategy={productStrategy} />
 
@@ -552,6 +556,67 @@ function SummaryBlock({ label, value }: { label: string; value: string }) {
   );
 }
 
+function ApprovalCenterSection({
+  slug,
+  action,
+  pendingApprovals,
+}: {
+  slug: string;
+  action: ProductAction;
+  pendingApprovals: string[];
+}) {
+  const canApproveCurrentAction = !["completed", "rejected"].includes(action.status);
+
+  return (
+    <Section title="Approval Center">
+      <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_360px]">
+        <Card className="border-primary/30 bg-primary/5">
+          <CardHeader>
+            <CardTitle className="flex flex-wrap items-center gap-2 text-sm">
+              What can I approve now?
+              <Badge variant={pendingApprovals.length ? "secondary" : "default"}>{pendingApprovals.length} pending</Badge>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="grid gap-3 text-sm">
+            {pendingApprovals.length ? (
+              <div className="grid gap-2 md:grid-cols-2">
+                {pendingApprovals.slice(0, 8).map((item) => (
+                  <div key={item} className="rounded-md border bg-background px-3 py-2">{item}</div>
+                ))}
+              </div>
+            ) : (
+              <div className="rounded-md border bg-background px-3 py-2 text-muted-foreground">No product strategy approval is pending.</div>
+            )}
+            <form action={approveProductStrategyAction} className="flex flex-wrap items-center gap-2">
+              <input type="hidden" name="slug" value={slug} />
+              <input type="hidden" name="approvalType" value="product_strategy" />
+              <Button type="submit" size="sm" disabled={!pendingApprovals.length}>Approve Product Strategy</Button>
+              <span className="text-xs text-muted-foreground">Creates an approval import automatically.</span>
+            </form>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader><CardTitle className="text-sm">Current Step</CardTitle></CardHeader>
+          <CardContent className="grid gap-3 text-sm">
+            <div className="rounded-md border bg-background p-3">
+              <div className="font-medium">{action.title}</div>
+              <div className="mt-1 text-xs text-muted-foreground">{action.phase.replaceAll("_", " ")} - {action.status}</div>
+            </div>
+            <form action={approveProductStrategyAction} className="grid gap-2">
+              <input type="hidden" name="slug" value={slug} />
+              <input type="hidden" name="approvalType" value="current_action" />
+              <input type="hidden" name="actionId" value={action.id} />
+              <Button type="submit" size="sm" disabled={!canApproveCurrentAction}>Approve Current Step</Button>
+              <p className="text-xs text-muted-foreground">Marks this step done and moves the next product action forward.</p>
+            </form>
+          </CardContent>
+        </Card>
+      </div>
+    </Section>
+  );
+}
+
 function ProductStrategySection({ strategy }: { strategy: ProductStrategy }) {
   return (
     <Section title="Product Strategy">
@@ -714,7 +779,7 @@ function CurrentActionSection({
   upcomingActions: ProductAction[];
   importedActions: Array<ImportedResearchAction & { phase: ProductActionPhase; blockedBy: string[]; unlocks: string[]; completionCriteria: string[] }>;
 }) {
-  const canApproveMvpScope = slug === "workshop" && action.id === "approve-workshop-mvp-scope";
+  const canApproveCurrentAction = !["completed", "rejected"].includes(action.status);
 
   return (
     <Section title="Current Next Action">
@@ -733,12 +798,14 @@ function CurrentActionSection({
             <MiniList title="Why Not Later" items={[action.whyNotLater]} />
             <MiniList title="Blocked By" items={action.blockedBy.length ? action.blockedBy : ["No blocker recorded"]} />
             <MiniList title="Completion Criteria" items={action.completionCriteria} />
-            {canApproveMvpScope ? (
-              <form action={approveMvpScopeAction} className="mt-1 rounded-md border bg-background p-3">
+            {canApproveCurrentAction ? (
+              <form action={approveProductStrategyAction} className="mt-1 rounded-md border bg-background p-3">
                 <input type="hidden" name="slug" value={slug} />
+                <input type="hidden" name="approvalType" value="current_action" />
+                <input type="hidden" name="actionId" value={action.id} />
                 <div className="mb-2 text-sm font-medium">Ready to approve this step?</div>
-                <p className="mb-3 text-xs text-muted-foreground">This creates the approval import automatically and moves Workshop to demo build.</p>
-                <Button type="submit" size="sm">Approve MVP Scope</Button>
+                <p className="mb-3 text-xs text-muted-foreground">This creates the approval import automatically and moves the product workflow forward.</p>
+                <Button type="submit" size="sm">Approve Current Step</Button>
               </form>
             ) : null}
           </CardContent>
