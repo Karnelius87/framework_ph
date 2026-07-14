@@ -1,9 +1,10 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { FileDown, GitCompareArrows, Network, NotebookText, SlidersHorizontal, Sparkles } from "lucide-react";
+import { Network, NotebookText, SlidersHorizontal, Sparkles } from "lucide-react";
 import { AiPanel } from "@/components/app/ai-panel";
 import { AdvancedDisclosure, DecisionCard, RecommendationCard, ResearchActionCard, UnknownCard } from "@/components/app/decision-cards";
 import { ExplainableMetric } from "@/components/app/explainable-metric";
+import { MarketExportPdfButton } from "@/components/app/market-export-pdf-button";
 import { MdxChapter } from "@/components/app/mdx-chapter";
 import { PageHeader } from "@/components/app/page-header";
 import { FrameworkBars, FrameworkRadar, HistoricalScoreChart } from "@/components/charts/research-charts";
@@ -187,8 +188,7 @@ export default async function MarketPage({ params }: { params: Promise<{ slug: s
         description={market.summary}
         actions={
           <>
-            <Button variant="outline" size="sm"><FileDown data-icon="inline-start" />Export PDF</Button>
-            <Button variant="outline" size="sm"><GitCompareArrows data-icon="inline-start" />Compare</Button>
+            <MarketExportPdfButton />
             <Button variant="outline" size="sm"><Sparkles data-icon="inline-start" />Generate Summary</Button>
             <Button variant="outline" size="sm"><NotebookText data-icon="inline-start" />Open Notes</Button>
             <Link className={buttonVariants({ variant: "outline", size: "sm" })} href={`/markets/${slug}/metrics`}><SlidersHorizontal data-icon="inline-start" />Strategic Metrics</Link>

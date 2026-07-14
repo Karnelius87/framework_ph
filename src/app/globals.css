@@ -130,3 +130,25 @@
     @apply font-sans;
   }
 }
+
+@media print {
+  @page {
+    margin: 12mm;
+  }
+
+  aside,
+  header,
+  button,
+  [data-print-hidden="true"] {
+    display: none !important;
+  }
+
+  body {
+    background: white !important;
+    color: black !important;
+  }
+
+  main {
+    display: block !important;
+  }
+}

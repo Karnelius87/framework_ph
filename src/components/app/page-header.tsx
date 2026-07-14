@@ -23,7 +23,7 @@ export function PageHeader({ title, subtitle, description, icon: Icon, actions }
           <p className="mt-1 max-w-3xl text-sm text-muted-foreground">{description}</p>
         </div>
       </div>
-      {actions ? <div className="flex shrink-0 flex-wrap items-center gap-2">{actions}</div> : null}
+      {actions ? <div className="flex shrink-0 flex-wrap items-center gap-2" data-print-hidden="true">{actions}</div> : null}
     </div>
   );
 }
