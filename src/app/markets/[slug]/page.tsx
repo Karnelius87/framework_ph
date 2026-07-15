@@ -580,8 +580,8 @@ function ApprovalCenterSection({
           <CardContent className="grid gap-3 text-sm">
             {pendingApprovals.length ? (
               <div className="grid gap-2 md:grid-cols-2">
-                {pendingApprovals.slice(0, 8).map((item) => (
-                  <div key={item} className="rounded-md border bg-background px-3 py-2">{item}</div>
+                {pendingApprovals.slice(0, 8).map((item, index) => (
+                  <div key={`pending-approval-${index}`} className="rounded-md border bg-background px-3 py-2">{item}</div>
                 ))}
               </div>
             ) : (
@@ -1060,7 +1060,7 @@ function InfoCard({ title, badges, body, footer }: { title: string; badges: stri
       <CardHeader>
         <CardTitle className="flex flex-wrap items-center gap-2 text-sm">
           {title}
-          {badges.filter(Boolean).map((badge, index) => <Badge key={`${badge}-${index}`} variant="secondary">{badge}</Badge>)}
+          {badges.filter(Boolean).map((badge, index) => <Badge key={`info-badge-${index}`} variant="secondary">{badge}</Badge>)}
         </CardTitle>
       </CardHeader>
       <CardContent className="text-sm text-muted-foreground">
