@@ -1,5 +1,6 @@
 "use client";
 
+import { Children, type ReactNode } from "react";
 import Link from "next/link";
 import { ArrowRight, Info } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -74,6 +75,8 @@ export function ExplainableMetric({
   variant = "card",
   className,
 }: ExplainableMetricProps) {
+  const missingEvidenceItems = [...gaps, ...missingEvidence];
+
   return (
     <Sheet>
       <SheetTrigger render={<button className="group w-full rounded-md text-left outline-none focus-visible:ring-2 focus-visible:ring-ring" />}>
@@ -101,7 +104,7 @@ export function ExplainableMetric({
       <SheetContent className="w-full overflow-hidden border-l border-border bg-card shadow-2xl sm:max-w-xl xl:max-w-2xl">
         <SheetHeader>
           <SheetTitle>{label}</SheetTitle>
-          <SheetDescription>Metric definition, formula, evidence, history, gaps, and navigation trail.</SheetDescription>
+          <SheetDescription>Metric definition, evidence, and next-step navigation.</SheetDescription>
         </SheetHeader>
         <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-4">
           <div className="grid gap-4 text-sm">
@@ -118,38 +121,32 @@ export function ExplainableMetric({
             {formula ? <CodeBlock title="Formula" body={formula} /> : null}
             <TextBlock title="Explanation" body={explanation} />
 
-            <div className="grid gap-3 md:grid-cols-2">
-              <DetailList title="Supporting Claims" items={linkedClaims} empty="No linked supporting claims." />
-              <DetailList title="Opposing Claims" items={opposingClaims} empty="No linked opposing claims." />
-            </div>
-            <div className="grid gap-3 md:grid-cols-2">
-              <DetailList title="Supporting Evidence" items={supportingEvidence} empty="No supporting evidence listed." />
-              <DetailList title="Opposing Evidence" items={opposingEvidence} empty="No opposing evidence listed." />
-            </div>
-            <div className="grid gap-3 md:grid-cols-2">
-              <DetailList title="Linked Sources" items={linkedSources} empty="No linked sources." />
-              <DetailList title="Linked Competitors" items={linkedCompetitors} empty="No linked competitors." />
-            </div>
-            <div className="grid gap-3 md:grid-cols-2">
-              <DetailList title="Linked Interviews" items={linkedInterviews} empty="No linked interviews." />
-              <DetailList title="Open Questions" items={openQuestions} empty="No open questions." />
-            </div>
-            <div className="grid gap-3 md:grid-cols-2">
-              <DetailList title="Critical Unknowns" items={criticalUnknowns} empty="No critical unknowns." />
-              <DetailList title="Missing Evidence" items={[...gaps, ...missingEvidence]} empty="No missing evidence recorded." />
-            </div>
+            <DetailGroup>
+              <DetailList title="Supporting Claims" items={linkedClaims} />
+              <DetailList title="Opposing Claims" items={opposingClaims} />
+              <DetailList title="Supporting Evidence" items={supportingEvidence} />
+              <DetailList title="Opposing Evidence" items={opposingEvidence} />
+              <DetailList title="Linked Sources" items={linkedSources} />
+              <DetailList title="Linked Competitors" items={linkedCompetitors} />
+              <DetailList title="Linked Interviews" items={linkedInterviews} />
+              <DetailList title="Open Questions" items={openQuestions} />
+              <DetailList title="Critical Unknowns" items={criticalUnknowns} />
+              <DetailList title="Missing Evidence" items={missingEvidenceItems} />
+            </DetailGroup>
 
-            <div>
-              <div className="font-medium">Historical Values</div>
-              <div className="mt-2 flex flex-col gap-2">
-                {history.length === 0 ? <div className="text-muted-foreground">No historical values yet.</div> : history.map((item) => (
-                  <div key={`${item.label}-${item.value}`} className="flex items-center justify-between rounded-md border bg-background p-2">
-                    <span className="text-muted-foreground">{item.label}</span>
-                    <span className="font-mono">{item.value}</span>
-                  </div>
-                ))}
+            {history.length ? (
+              <div>
+                <div className="font-medium">Historical Values</div>
+                <div className="mt-2 flex flex-col gap-2">
+                  {history.map((item) => (
+                    <div key={`${item.label}-${item.value}`} className="flex items-center justify-between rounded-md border bg-background p-2">
+                      <span className="text-muted-foreground">{item.label}</span>
+                      <span className="font-mono">{item.value}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>
+            ) : null}
 
             {navigation.length || href || intelligenceHref ? (
               <div>
@@ -198,12 +195,22 @@ function CodeBlock({ title, body }: { title: string; body: string }) {
   );
 }
 
-function DetailList({ title, items, empty }: { title: string; items: string[]; empty: string }) {
+function DetailGroup({ children }: { children: ReactNode }) {
+  const visibleChildren = Children.toArray(children).filter(Boolean);
+
+  if (!visibleChildren.length) return null;
+
+  return <div className="grid gap-3 md:grid-cols-2">{visibleChildren}</div>;
+}
+
+function DetailList({ title, items }: { title: string; items: string[] }) {
+  if (items.length === 0) return null;
+
   return (
     <div>
       <div className="font-medium">{title}</div>
       <div className="mt-2 flex flex-wrap gap-2">
-        {items.length === 0 ? <span className="text-muted-foreground">{empty}</span> : items.map((item, index) => (
+        {items.map((item, index) => (
           <span key={`${item}-${index}`} className="max-w-full break-words rounded-md border bg-muted px-2 py-1 text-xs font-medium text-muted-foreground">{item}</span>
         ))}
       </div>

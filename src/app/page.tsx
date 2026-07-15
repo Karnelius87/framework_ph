@@ -35,6 +35,7 @@ type DashboardRow = {
   topReason: string;
   topRisk: string;
   nextAction: string;
+  competitors: string[];
 };
 
 function scoreTone(score: number) {
@@ -88,6 +89,7 @@ export default async function DashboardPage() {
       strategicAdvantages: { orderBy: { confidence: "desc" } },
       strategicDisadvantages: { orderBy: { confidence: "desc" } },
       researchActions: { orderBy: [{ priority: "desc" }, { estimatedImpact: "desc" }, { createdAt: "desc" }] },
+      competitors: { orderBy: { company: "asc" } },
     },
   });
 
@@ -122,6 +124,7 @@ export default async function DashboardPage() {
       topReason: dbMarket?.strategicAdvantages[0]?.title ?? market.strengths[0] ?? "No structured reason yet",
       topRisk: dbMarket?.strategicDisadvantages[0]?.title ?? market.weaknesses[0] ?? "No structured risk yet",
       nextAction: openActions[0]?.title ?? "Generate or approve a next research action",
+      competitors: dbMarket?.competitors.map((competitor) => competitor.company) ?? [],
     };
   });
 
@@ -166,7 +169,8 @@ export default async function DashboardPage() {
             explanation={best ? `${best.name} is currently the strongest pursuit candidate because it has the highest active Decision Score and no triggered kill criterion.` : "No active pursuit candidate is currently available."}
             supportingEvidence={best ? [best.topReason] : []}
             opposingEvidence={best ? [best.topRisk] : []}
-            criticalUnknowns={best ? [`${best.criticalUnknowns} critical unknown(s)`] : []}
+            linkedCompetitors={best?.competitors ?? []}
+            criticalUnknowns={best && best.criticalUnknowns ? [`${best.criticalUnknowns} critical unknown(s)`] : []}
             openQuestions={best ? [best.nextAction] : []}
             navigation={best ? [{ label: `Open ${best.name}`, href: `/markets/${best.slug}`, description: "Drill into the market investment summary." }] : []}
             valueClassName={best ? scoreTone(best.decisionScore).text : undefined}
