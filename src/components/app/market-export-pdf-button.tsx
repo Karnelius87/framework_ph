@@ -1,13 +1,12 @@
-"use client";
-
 import { FileDown } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import Link from "next/link";
+import { buttonVariants } from "@/components/ui/button";
 
-export function MarketExportPdfButton() {
+export function MarketExportPdfButton({ href }: { href: string }) {
   return (
-    <Button type="button" variant="outline" size="sm" onClick={() => window.print()} data-print-hidden="true">
+    <Link className={buttonVariants({ variant: "outline", size: "sm" })} href={href} data-print-hidden="true">
       <FileDown data-icon="inline-start" />
       Export PDF
-    </Button>
+    </Link>
   );
 }

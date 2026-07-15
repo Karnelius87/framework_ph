@@ -1,10 +1,11 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Network, NotebookText, SlidersHorizontal, Sparkles } from "lucide-react";
+import { CircleAlert, Lightbulb, Network, NotebookText, SlidersHorizontal } from "lucide-react";
 import { AiPanel } from "@/components/app/ai-panel";
-import { AdvancedDisclosure, DecisionCard, RecommendationCard, ResearchActionCard, UnknownCard } from "@/components/app/decision-cards";
+import { AdvancedDisclosure, DecisionCard, RecommendationCard } from "@/components/app/decision-cards";
 import { ExplainableMetric } from "@/components/app/explainable-metric";
 import { MarketExportPdfButton } from "@/components/app/market-export-pdf-button";
+import { MarketGenerateSummaryButton } from "@/components/app/market-generate-summary-button";
 import { MdxChapter } from "@/components/app/mdx-chapter";
 import { PageHeader } from "@/components/app/page-header";
 import { FrameworkBars, FrameworkRadar, HistoricalScoreChart } from "@/components/charts/research-charts";
@@ -181,6 +182,14 @@ export default async function MarketPage({ params }: { params: Promise<{ slug: s
     dbMarket?.imports[0]?.importedAt,
     dbMarket?.imports[0]?.researchDate,
   ]);
+  const generatedSummary = [
+    `${market.name} / ${slug === "workshop" ? "Garage Management Software (GMS)" : market.stage}`,
+    `Recommendation: ${recommendation}.`,
+    `Decision score: ${decisionScore}. Market score: ${totalMarketScore}. Confidence: ${decisionMetric?.confidence ?? market.confidence}%.`,
+    `Current product stage: ${productStrategy ? productStageLabels[productStrategy.currentProductStage] : "Product Thesis"}.`,
+    `Current next action: ${productAction.title}`,
+    `Primary blocker: ${primaryBlocker || "No blocker recorded."}`,
+  ].join("\n");
 
   return (
     <div>
@@ -190,8 +199,8 @@ export default async function MarketPage({ params }: { params: Promise<{ slug: s
         description={market.summary}
         actions={
           <>
-            <MarketExportPdfButton />
-            <Button variant="outline" size="sm"><Sparkles data-icon="inline-start" />Generate Summary</Button>
+            <MarketExportPdfButton href={`/api/markets/${slug}/pdf`} />
+            <MarketGenerateSummaryButton summaryText={generatedSummary} targetId="generated-summary" />
             <Button variant="outline" size="sm"><NotebookText data-icon="inline-start" />Open Notes</Button>
             <Link className={buttonVariants({ variant: "outline", size: "sm" })} href={`/markets/${slug}/metrics`}><SlidersHorizontal data-icon="inline-start" />Strategic Metrics</Link>
             <Link className={buttonVariants({ variant: "outline", size: "sm" })} href={`/markets/${slug}/intelligence`}><Network data-icon="inline-start" />Intelligence Graph</Link>
@@ -214,11 +223,15 @@ export default async function MarketPage({ params }: { params: Promise<{ slug: s
                 <DecisionCard label="Decision Score" value={decisionScore} tone={decisionScore >= 80 ? "good" : decisionScore >= 65 ? "watch" : "risk"} />
                 <DecisionCard label="Research Confidence" value={`${decisionMetric?.confidence ?? market.confidence}%`} tone={(decisionMetric?.confidence ?? market.confidence) >= 70 ? "good" : "watch"} />
                 <DecisionCard label="Product Stage" value={productStrategy ? productStageLabels[productStrategy.currentProductStage] : "Product Thesis"} tone={productStrategy && productStrategy.productReadiness >= 70 ? "good" : "watch"} />
-                <ResearchActionCard title="Current Next Action" action={productAction.title} priority={productAction.phase.replaceAll("_", " ")} />
-                <UnknownCard title={primaryBlocker} detail={currentGate?.label} severity={primaryBlocker ? "watch" : "good"} />
+                <InlineCurrentActionCard slug={slug} action={productAction} />
+                <BlockingProgressCard slug={slug} action={productAction} blocker={primaryBlocker} gateLabel={currentGate?.label} />
               </div>
             </div>
           </Section>
+
+          <div id="generated-summary">
+            <GeneratedSummarySection summary={generatedSummary} />
+          </div>
 
           {productStrategy ? <ApprovalCenterSection slug={slug} action={productAction} pendingApprovals={pendingApprovals} /> : null}
 
@@ -229,7 +242,7 @@ export default async function MarketPage({ params }: { params: Promise<{ slug: s
               <ScoreTile label="Recommendation" value={recommendation} tone={recommendationTone(recommendation)} />
               <ScoreTile label="Should Continue" value={recommendation === "Pause" || recommendation === "Reject" ? "No" : "Yes"} tone={recommendation === "Pause" || recommendation === "Reject" ? "risk" : "good"} />
               <ScoreTile label="What We Build" value={productStrategy?.productName.value ?? "Not defined"} tone="watch" />
-              <ScoreTile label="Blocking Progress" value={primaryBlocker} tone={primaryBlocker ? "watch" : "good"} />
+              <BlockingProgressCard slug={slug} action={productAction} blocker={primaryBlocker} gateLabel={currentGate?.label} compact />
             </div>
             <MarketProjectMetricsSection market={activeMarket} productStrategy={productStrategy} />
           </Section>
@@ -552,6 +565,77 @@ function SummaryBlock({ label, value }: { label: string; value: string }) {
     <div className="rounded-md border bg-background p-3">
       <div className="text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">{label}</div>
       <p className="mt-2 text-sm font-medium">{value}</p>
+    </div>
+  );
+}
+
+function GeneratedSummarySection({ summary }: { summary: string }) {
+  return (
+    <Section title="Generated Summary">
+      <Card>
+        <CardContent className="pt-6">
+          <pre className="whitespace-pre-wrap text-sm text-muted-foreground">{summary}</pre>
+        </CardContent>
+      </Card>
+    </Section>
+  );
+}
+
+function InlineCurrentActionCard({ slug, action }: { slug: string; action: ProductAction }) {
+  const canApprove = !["completed", "rejected"].includes(action.status);
+
+  return (
+    <div className="rounded-md border bg-background p-3">
+      <div className="flex flex-wrap items-center gap-2 text-sm font-medium">
+        <Lightbulb className="size-4 text-primary" />
+        Current Next Action
+        <Badge variant="outline">{action.phase.replaceAll("_", " ")}</Badge>
+      </div>
+      <p className="mt-2 text-sm text-muted-foreground">{action.title}</p>
+      {canApprove ? (
+        <form action={approveProductStrategyAction} className="mt-3">
+          <input type="hidden" name="slug" value={slug} />
+          <input type="hidden" name="approvalType" value="current_action" />
+          <input type="hidden" name="actionId" value={action.id} />
+          <Button type="submit" size="sm">Approve Current Step</Button>
+        </form>
+      ) : null}
+    </div>
+  );
+}
+
+function BlockingProgressCard({
+  slug,
+  action,
+  blocker,
+  gateLabel,
+  compact = false,
+}: {
+  slug: string;
+  action: ProductAction;
+  blocker: string;
+  gateLabel?: string;
+  compact?: boolean;
+}) {
+  const canApprove = !["completed", "rejected"].includes(action.status);
+
+  return (
+    <div className="rounded-md border border-amber-500/40 bg-amber-500/10 p-3">
+      <div className="flex items-center gap-2 text-xs uppercase tracking-[0.12em] text-muted-foreground">
+        <CircleAlert className="size-4" />
+        Blocking Progress
+      </div>
+      <p className={compact ? "mt-2 text-balance font-mono text-lg font-semibold md:text-xl" : "mt-2 text-sm font-medium"}>{blocker || "No blocker recorded."}</p>
+      {gateLabel ? <p className="mt-1 text-xs text-muted-foreground">{gateLabel}</p> : null}
+      <p className="mt-2 text-xs text-muted-foreground">Source: active product strategy snapshot. It updates after approving the current step.</p>
+      {canApprove ? (
+        <form action={approveProductStrategyAction} className="mt-3">
+          <input type="hidden" name="slug" value={slug} />
+          <input type="hidden" name="approvalType" value="current_action" />
+          <input type="hidden" name="actionId" value={action.id} />
+          <Button type="submit" size="sm">Approve Current Step</Button>
+        </form>
+      ) : null}
     </div>
   );
 }
